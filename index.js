@@ -3,6 +3,7 @@ const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const cors = require("cors");
 
 // MIDDLEWARES
 const { authenticateToken } = require("./middlewares/auth");
@@ -24,6 +25,13 @@ const {
 
 const app = express();
 
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    optionsSuccessStatus: 200,
+  })
+);
+
 app.use(express.json());
 
 const prisma = new PrismaClient();
@@ -34,15 +42,21 @@ app.post("/", async (req, res) => {
   const { error, value } = createUser.validate(req.body);
   if (error) return res.status(400).json(error.details[0].message);
 
+  delete value.passwordConfirm;
+
   try {
     const data = value;
     data.password = await hashPassword(data.password);
+
     const user = await prisma.user.create({
       data,
     });
-    res.json(user);
+
+    delete user.password;
+    const accessToken = jwt.sign(user, process.env.JWT_SECRET);
+    res.json({ accessToken, user });
   } catch (error) {
-    res.status(400).json(error);
+    res.status(400).json("Qualcosa è andato storto");
   }
 });
 

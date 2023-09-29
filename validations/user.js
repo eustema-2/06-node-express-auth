@@ -4,6 +4,7 @@ const createUser = Joi.object({
   name: Joi.string().min(3).max(255).required(),
   email: Joi.string().email().required(),
   password: Joi.string().required(),
+  passwordConfirm: Joi.required().valid(Joi.ref("password")),
 });
 
 const updateUser = Joi.object({
